@@ -1,59 +1,64 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
-  const [tooted, setTooted] = useState([]);
-  const idRef = useRef();
-  const nameRef = useRef();
-  const priceRef = useRef();
-  const isActiveRef = useRef();
+    const [prices, setPrices] = useState([]);
+    const [chosenCountry, setChosenCountry] = useState("ee");
+    const [start, setStart] = useState("");
+    const [end, setEnd] = useState("");
+    const startRef = useRef();
+    const endRef = useRef();
 
-  useEffect(() => {
-    fetch("http://localhost:3000/tooted")
-        .then(res => res.json())
-        .then(json => setTooted(json));
-  }, []);
+    useEffect(() => {
+        if (start !== "" && end !== "") {
+            fetch("http://localhost:3000/nord-pool-price?country=" + chosenCountry + "&start=" + start + "&end=" + end)
+                .then(res => res.json())
+                .then(json => {
+                    setPrices(json);
+                });
+        }
+    }, [chosenCountry, start, end]);
 
-  function kustuta(index) {
-    fetch("http://localhost:3000/kustuta-toode/" + index)
-        .then(res => res.json())
-        .then(json => setTooted(json));
-  }
+    function updateStart() {
+        const startIso = new Date(startRef.current.value).toISOString();
+        setStart(startIso);
+    }
 
-  function lisa() {
-    fetch(`http://localhost:4444/tooted/lisa/${Number(idRef.current.value)}/${nameRef.current.value}/${Number(priceRef.current.value)}/${isActiveRef.current.checked}`)
-        .then(res => res.json())
-        .then(json => setTooted(json));
-  }
+    function updateEnd() {
+        const endIso = new Date(endRef.current.value).toISOString();
+        setEnd(endIso);
+    }
 
-  function dollariteks() {
-    const kurss = 1.1;
-    fetch("http://localhost:4444/tooted/hind-dollaritesse/" + kurss)
-        .then(res => res.json())
-        .then(json => setTooted(json));
-  }
-
-  return (
-      <div className="App">
-        <label>ID</label> <br />
-        <input ref={idRef} type="number" /> <br />
-        <label>Nimi</label> <br />
-        <input ref={nameRef} type="text" /> <br />
-        <label>Hind</label> <br />
-        <input ref={priceRef} type="number" /> <br />
-        <label>Aktiivne</label> <br />
-        <input ref={isActiveRef} type="checkbox" /> <br />
-        <button onClick={() => lisa()}>Lisa</button>
-        {tooted.map((toode, index) =>
-            <div>
-              <div>{toode.id}</div>
-              <div>{toode.name}</div>
-              <div>{toode.price}</div>
-              <button onClick={() => kustuta(index)}>x</button>
-            </div>)}
-        <button onClick={() => dollariteks()}>Muuda dollariteks</button>
-      </div>
-  );
+    return (
+        <div>
+            <button onClick={() => setChosenCountry("fi")}>Soome</button>
+            <button onClick={() => setChosenCountry("ee")}>Eesti</button>
+            <button onClick={() => setChosenCountry("lv")}>Läti</button>
+            <button onClick={() => setChosenCountry("lt")}>Leedu</button>
+            <input ref={startRef} onChange={updateStart} type="datetime-local" />
+            <input ref={endRef} onChange={updateEnd} type="datetime-local" />
+            {prices.length > 0 &&
+                <table style={{marginLeft: "100px"}}>
+                    <thead>
+                    <tr>
+                        <td style={{border: "1px solid #ddd", padding: "12px", backgroundColor: "#04AA6D"}}>Ajatempel</td>
+                        <td style={{border: "1px solid #ddd", padding: "12px", backgroundColor: "#04AA6D"}}>Hind</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td style={{position: "absolute", left: "30px"}}>{chosenCountry}</td>
+                        {prices.map(data =>
+                            <tr key={data.timestamp}>
+                                <td style={{border: "1px solid #ddd", padding: "8px"}}>{new Date(data.timestamp * 1000).toISOString()}</td>
+                                <td style={{border: "1px solid #ddd", padding: "8px"}}>{data.price}</td>
+                            </tr>)}
+                    </tr>
+                    </tbody>
+                </table>}
+        </div>
+    );
 }
 
 export default App;
